@@ -1,1 +1,39 @@
+name: SENG363 Week 9 CI-CD
 
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build
+        run: |
+          python -m compileall -q app
+          mkdir -p dist
+          tar -czf dist/calculator-app.tar.gz app
+
+      - name: Test
+        run: python -m unittest discover -s tests -v
+
+      - name: Deploy to Development
+        run: |
+          mkdir -p deploy/development
+          tar -xzf dist/calculator-app.tar.gz -C deploy/development
+          PYTHONPATH=deploy/development python -c "from app.calculator import add; assert add(2,3)==5; print('Deployment successful')"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: calculator-app
+          path: dist/calculator-app.tar.gz
